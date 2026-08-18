@@ -1,0 +1,40 @@
+[project]
+name = "briefly"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.3.0",
+    "pydantic>=2.13.4",
+    "pypdf>=6.15.0",
+    "rich>=15.0.0",
+    "sqlalchemy>=2.0.51",
+    "sqlmodel>=0.0.39",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.25,<0.12"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.3",
+]
+
+[project.scripts]
+briefly = "briefly.cli:main"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
