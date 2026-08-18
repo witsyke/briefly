@@ -21,6 +21,7 @@ class VisualType(IntEnum):
     PATH = 2
     IMAGE = 3
     SHADING = 4
+    FORM = 5
 
 
 def _in_margin_band(bounds: BBox, page_height: float) -> bool:
@@ -33,7 +34,7 @@ def _visual_objects(page: pdfium.PdfPage) -> list:
     height = page.get_height()
     return [
         object
-        for object in page.get_objects()
+        for object in page.get_objects(max_depth=0)
         if object.type in VisualType
         and not _in_margin_band(object.get_bounds(), height)
     ]
@@ -75,7 +76,9 @@ def _contained_images(
     min_dimension,
 ):
     pdfium_images = [
-        object for object in page.get_objects() if object.type == VisualType.IMAGE
+        object
+        for object in page.get_objects(max_depth=0)
+        if object.type == VisualType.IMAGE
     ]
     pypdf_images = list(reader.pages[page_number - 1].images)
 
@@ -191,7 +194,7 @@ def _extract_images_sync(
 
     except Exception as exc:
         return ImageExtractionOutcome.failure(pdf_path, exc, retryable=False)
-
+    print("--------")
     return ImageExtractionOutcome.ok(pdf_path, saved)
 
 
