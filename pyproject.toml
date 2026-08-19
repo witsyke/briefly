@@ -19,6 +19,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.16.3",
 ]
 
@@ -38,3 +39,7 @@ select = [
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
 ]
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
+testpaths = ["src", "tests"]

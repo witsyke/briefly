@@ -24,6 +24,7 @@ class StageReport:
             self.permanent_failures.append((outcome.path, outcome.error or ""))
 
     def record_crash(self, path: Path, exc: BaseException) -> None:
+        self.total += 1
         self.crashed.append((path, str(exc)))
 
 

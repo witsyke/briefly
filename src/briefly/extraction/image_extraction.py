@@ -25,6 +25,18 @@ class VisualType(IntEnum):
 
 
 def _in_margin_band(bounds: BBox, page_height: float) -> bool:
+    """
+    True if an object's bound box falls inside the header or footer band,
+    the top/bottom 8% of the page, and should therefore be excluded from
+    figure region detection.
+
+    >>> _in_margin_band((10, 5, 50, 20), page_height=800)
+    True
+    >>> _in_margin_band((10, 750, 50, 790), page_height=800)
+    True
+    >>> _in_margin_band((10, 300, 50, 350), page_height=800)
+    False
+    """
     _, bottom, _, top = bounds
     band = page_height * MARGIN_BAND_FRACTION
     return top <= band or bottom >= page_height - band
@@ -41,6 +53,22 @@ def _visual_objects(page: pdfium.PdfPage) -> list:
 
 
 def _region_bbox(objects: list, page_size: tuple[float, float]) -> BBox | None:
+    """
+    Returns the bbox surrounding a supplied list of objects.
+
+    >>> _region_bbox([], page_size=(200,200))
+
+    >>> class _Obj:
+    ...     def __init__(self, bounds):
+    ...         self._bounds = bounds
+    ...     def get_bounds(self):
+    ...         return self._bounds
+    >>> _region_bbox(
+    ...      [_Obj((10, 10, 50, 50)), _Obj((40, 5, 90, 60))],
+    ...      page_size=(200,200)
+    ... )
+    (2.0, 0.0, 98.0, 68.0)
+    """
     if not objects:
         return None
     width, height = page_size
@@ -52,20 +80,33 @@ def _region_bbox(objects: list, page_size: tuple[float, float]) -> BBox | None:
     return (left, bottom, right, top)
 
 
-def _render_region(page: pdfium.PdfPage, region: BBox, page_size: tuple[float, float]):
-    width, height = page_size
-    left, bottom, right, top = region
-    crop = (left, bottom, width - right, height - top)
-    return page.render(scale=FALLBACK_RENDER_SCALE, crop=crop).to_pil().convert("RGB")
-
-
 def _center_inside(region: BBox, bounds: BBox) -> bool:
+    """
+    True if the center of of the supplied bounds is within a region.
+
+    >>> _center_inside((100, 100, 150, 150), (110, 110, 140, 140))
+    True
+
+    >>> _center_inside((100, 100, 150, 150), (140, 140, 160, 160))
+    True
+
+    >>> _center_inside((100, 100, 150, 150), (150, 150, 160, 160))
+    False
+
+    """
     left, bottom, right, top = region
     cx, cy = (
         (bounds[0] + bounds[2]) / 2,
         (bounds[1] + bounds[3]) / 2,
     )
     return left <= cx <= right and bottom <= cy <= top
+
+
+def _render_region(page: pdfium.PdfPage, region: BBox, page_size: tuple[float, float]):
+    width, height = page_size
+    left, bottom, right, top = region
+    crop = (left, bottom, width - right, height - top)
+    return page.render(scale=FALLBACK_RENDER_SCALE, crop=crop).to_pil().convert("RGB")
 
 
 def _contained_images(

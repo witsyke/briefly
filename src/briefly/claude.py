@@ -35,7 +35,7 @@ class ClaudeBackend:
             process = await asyncio.create_subprocess_exec(
                 *argv, stdin=PIPE, stdout=PIPE, stderr=PIPE
             )
-            raw_stdout, raw_stderr = await process.communicate(prompt.encode("utf-8"))
+            raw_stdout, _ = await process.communicate(prompt.encode("utf-8"))
         except OSError as exc:
             return ExtractionOutcome.failure(pdf_path, exc, retryable=True)
 
