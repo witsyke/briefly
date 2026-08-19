@@ -39,16 +39,6 @@ class ClaudeBackend:
         except OSError as exc:
             return ExtractionOutcome.failure(pdf_path, exc, retryable=True)
 
-        if process.returncode != 0:
-            # possible that I need to access "result" key here as well
-            message = raw_stderr.decode("utf-8", errors="replace").strip()
-            return ExtractionOutcome.failure(
-                pdf_path,
-                RuntimeError(
-                    message or f"claude exited with code {process.returncode}"
-                ),
-                retryable=True,
-            )
         try:
             envelope = json.loads(raw_stdout)
         except json.JSONDecodeError as exc:
