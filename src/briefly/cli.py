@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import webbrowser
 from pathlib import Path
 
 import yaml
@@ -390,6 +391,9 @@ def main() -> int:
 
             site_dir = Path(args.site_dir)
             run_site_stage(engine, extraction_dir, briefing_dir, site_dir, brief_config)
+
+            if Confirm.ask("Open briefly results in your browser?", default=True):
+                webbrowser.open((site_dir / "index.html").resolve().as_uri())
 
     report.print_summary(console, reports)
 

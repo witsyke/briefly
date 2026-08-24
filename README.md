@@ -1,5 +1,12 @@
 # briefly
 
+Get an at-a-glance overview of the literature you're tracking for a
+project: a sortable HTML table of every paper, one row each, down to
+whatever fields matter to your project (priority, setting, technique,
+...). Click through to a brief — much less than the paper, much more than
+an abstract — to actually decide what's worth reading and what to read
+first, before committing to the full text underneath.
+
 Turns a directory of PDF papers into extracted Markdown (with figures),
 config-driven briefs, and a small browsable HTML site linking both — using
 `claude` as the extraction/briefing backend.
