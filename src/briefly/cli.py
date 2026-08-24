@@ -3,6 +3,7 @@ import asyncio
 import re
 from pathlib import Path
 
+import yaml
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -17,10 +18,10 @@ from rich.prompt import Confirm
 from sqlalchemy import Engine
 
 from briefly import report, store
+from briefly.briefing import BriefConfig, BriefOutcome
 from briefly.claude import ClaudeBackend
 from briefly.extraction import ExtractionOutcome, extract_images
 from briefly.extraction.image_extraction import ImageExtractionOutcome
-from briefly.prompting import BackendType
 from briefly.queue import WorkerQueue
 
 PLACEHOLDER_RE = re.compile(r"\{\{IMAGE:(\d+)\}\}")
@@ -63,7 +64,7 @@ def run_extraction_stage(
             progress.console.print(f"[bold red]crashed:[/bold red] {path.name}: {exc}")
 
         queue = WorkerQueue(
-            process=ClaudeBackend(BackendType.EXTRACTION).extract,
+            process=ClaudeBackend().extract,
             on_start=on_start,
             on_result=on_result,
             on_error=on_error,
@@ -96,15 +97,67 @@ def run_image_extraction_stage(
                     f"[{color}]failed:[/{color}] {outcome.path.name}: {outcome.error}"
                 )
 
-        def on_error(path: Path, exc: BaseException) -> None:
+        def on_error(outcome: ExtractionOutcome, exc: BaseException) -> None:
             progress.advance(overall)
-            report.record_crash(path, exc)
-            progress.console.print(f"[bold red]crashed:[/bold red] {path.name}: {exc}")
+            report.record_crash(outcome.path, exc)
+            progress.console.print(
+                f"[bold red]crashed:[/bold red] {outcome.path.name}: {exc}"
+            )
 
         queue = WorkerQueue(
             process=lambda outcome: extract_images(
                 outcome.path, images_dir, outcome.payload.images
             ),
+            on_result=on_result,
+            on_error=on_error,
+            max_workers=4,
+        )
+
+        asyncio.run(queue.run(successful))
+
+
+def run_briefing_stage(
+    engine: Engine,
+    successful: list[ExtractionOutcome],
+    report: report.StageReport,
+    brief_config: BriefConfig,
+) -> None:
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+    ) as progress:
+        overall = progress.add_task(
+            "Creating briefs for documents", total=len(successful)
+        )
+        currently_running: dict[Path, TaskID] = {}
+
+        def on_start(outcome: ExtractionOutcome) -> None:
+            currently_running[outcome.path] = progress.add_task(
+                f"  {outcome.path.name}", total=None
+            )
+
+        def on_result(outcome: BriefOutcome) -> None:
+            progress.advance(overall)
+            store.save_brief(engine, outcome)
+            report.record(outcome)
+            if not outcome.succeeded:
+                color = "yellow" if outcome.retryable else "red"
+                progress.console.print(
+                    f"[{color}]failed:[/{color}] {outcome.path.name}: {outcome.error}"
+                )
+
+        def on_error(outcome: ExtractionOutcome, exc: BaseException) -> None:
+            progress.advance(overall)
+            report.record_crash(outcome.path, exc)
+            progress.console.print(
+                f"[bold red]crashed:[/bold red] {outcome.path.name}: {exc}"
+            )
+
+        queue = WorkerQueue(
+            process=ClaudeBackend(brief_config).brief,
+            on_start=on_start,
             on_result=on_result,
             on_error=on_error,
             max_workers=4,
@@ -140,6 +193,32 @@ def run_writing_stage(
         asyncio.run(queue.run(successful))
 
 
+def run_brief_writing_stage(
+    engine: Engine,
+    successful: list[BriefOutcome],
+    brief_config: BriefConfig,
+    output_dir: Path,
+) -> None:
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+    ) as progress:
+        overall = progress.add_task("Writing briefs to markdown", total=len(successful))
+
+        def on_result(path: Path) -> None:
+            progress.advance(overall)
+
+        queue = WorkerQueue(
+            process=lambda outcome: write_brief(outcome, brief_config, output_dir),
+            on_result=on_result,
+            max_workers=4,
+        )
+
+        asyncio.run(queue.run(successful))
+
+
 async def write_markdown(
     outcome: ExtractionOutcome, images: dict[int, Path], output_dir: Path
 ) -> Path:
@@ -156,6 +235,20 @@ async def write_markdown(
 
     markdown = PLACEHOLDER_RE.sub(substitute, outcome.payload.markdown)
     out_path.write_text(markdown)
+    return out_path
+
+
+async def write_brief(outcome: BriefOutcome, config: BriefConfig, output_dir: Path):
+    assert outcome.fields is not None
+    out_path = output_dir / f"{outcome.path.stem}.md"
+    frontmatter = {
+        spec.field: outcome.fields[spec.field] for spec in config.frontmatter
+    }
+    body = "\n\n".join(
+        f"## {spec.field.replace('_', ' ').title()}\n\n{outcome.fields[spec.field]}"
+        for spec in config.sections
+    )
+    out_path.write_text(f"---\n{yaml.safe_dump(frontmatter)}---\n\n{body}\n")
     return out_path
 
 
@@ -182,7 +275,9 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Process PDF papers into a summary")
     parser.add_argument("--literature-dir", type=str, default="literature")
-    parser.add_argument("--output-dir", type=str, default="extractions")
+    parser.add_argument("--extraction-dir", type=str, default="extractions")
+    parser.add_argument("--briefing-dir", type=str, default="briefs")
+    parser.add_argument("--briefing-config", type=str, default="brief.yaml")
     parser.add_argument("--database", type=str, default="briefly.sqlite3")
     args = parser.parse_args()
 
@@ -198,9 +293,9 @@ def main() -> int:
         f"{len(all_pdf_paths) - len(pdf_paths)} documents in {args.literature_dir} are already done, {len(pdf_paths)} left to extract"
     )
 
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(exist_ok=True)
-    images_dir = output_dir / "images"
+    extraction_dir = Path(args.extraction_dir)
+    extraction_dir.mkdir(exist_ok=True)
+    images_dir = extraction_dir / "images"
 
     run_extraction_stage(engine, pdf_paths, text_extraction_report)
     run_image_extraction_stage(
@@ -209,9 +304,33 @@ def main() -> int:
         images_dir,
         image_extraction_report,
     )
-    run_writing_stage(engine, store.successful_outcomes(engine), output_dir)
+    run_writing_stage(engine, store.successful_outcomes(engine), extraction_dir)
 
-    report.print_summary(console, [text_extraction_report, image_extraction_report])
+    reports = [text_extraction_report, image_extraction_report]
+
+    if Confirm.ask(
+        "Do you want to run brief creation (requires a valid briefing config?",
+        default=True,
+    ):
+        briefing_report = report.StageReport(name="Brief Creation")
+        briefing_dir = Path(args.briefing_dir)
+        briefing_dir.mkdir(exist_ok=True)
+
+        with open(args.briefing_config) as config:
+            brief_config = BriefConfig.model_validate(yaml.safe_load(config))
+
+        run_briefing_stage(
+            engine, store.pending_briefs(engine), briefing_report, brief_config
+        )
+        run_brief_writing_stage(
+            engine,
+            store.successful_briefs(engine, brief_config),
+            brief_config,
+            briefing_dir,
+        )
+        reports.append(briefing_report)
+
+    report.print_summary(console, reports)
 
     review_failures(engine, console, text_extraction_report)
 

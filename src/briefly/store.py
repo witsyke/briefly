@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy import Engine
 from sqlmodel import Field, Session, SQLModel, create_engine, delete, select
 
+from briefly.briefing import BriefConfig, BriefOutcome
 from briefly.extraction import (
     ExtractionOutcome,
     ExtractionPayload,
@@ -135,3 +136,51 @@ def images_for(engine: Engine, path: Path) -> dict[int, Path]:
         ).all()
 
     return {row.order: Path(row.file_path) for row in rows}
+
+
+class BriefRow(SQLModel, table=True):
+    __tablename__ = "briefs"
+    path: str = Field(primary_key=True)
+    fields_json: str | None = None
+    error: str | None = None
+    retryable: bool = False
+
+
+def save_brief(engine: Engine, outcome: BriefOutcome) -> None:
+    fields = outcome.fields
+    row = BriefRow(
+        path=str(outcome.path),
+        fields_json=(json.dumps(fields) if fields else None),
+        error=outcome.error,
+        retryable=outcome.retryable,
+    )
+    with Session(engine) as session:
+        session.merge(row)
+        session.commit()
+
+
+def pending_briefs(engine: Engine) -> list[ExtractionOutcome]:
+    outcomes = successful_outcomes(engine)
+    with Session(engine) as session:
+        completed = set(
+            session.exec(
+                select(BriefRow.path).where(
+                    BriefRow.fields_json.is_not(None) | BriefRow.retryable.is_(False)  # pyright: ignore
+                ),
+            ).all()
+        )
+    return [outcome for outcome in outcomes if str(outcome.path) not in completed]
+
+
+def successful_briefs(engine: Engine, brief_config: BriefConfig) -> list[BriefOutcome]:
+    with Session(engine) as session:
+        rows = session.exec(
+            select(BriefRow).where(
+                BriefRow.fields_json.is_not(None)  # pyright: ignore
+            )
+        ).all()
+
+    return [
+        BriefOutcome.ok(Path(row.path), json.loads(row.fields_json or "{}"))
+        for row in rows
+    ]

@@ -4,6 +4,8 @@ from typing import ClassVar, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from briefly.payload import PayloadModel
+
 
 class ImageReference(BaseModel):
     model_config: ClassVar = ConfigDict(frozen=True, extra="forbid", strict=True)
@@ -12,7 +14,7 @@ class ImageReference(BaseModel):
     page: int
 
 
-class ExtractionPayload(BaseModel):
+class ExtractionPayload(PayloadModel):
     """What a LLM or other extraction service must return of a PDF"""
 
     model_config: ClassVar = ConfigDict(frozen=True, extra="forbid", strict=True)
@@ -41,7 +43,7 @@ class ExtractionOutcome:
 
     @classmethod
     def failure(
-        cls, path: Path, error: BaseException, *, retryable: bool
+        cls, path: Path, error: Exception, *, retryable: bool
     ) -> "ExtractionOutcome":
         return cls(path=path, payload=None, error=str(error), retryable=retryable)
 

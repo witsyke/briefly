@@ -1,19 +1,29 @@
-from enum import Enum
 from pathlib import Path
 
+from briefly.briefing import BriefConfig, FieldSpec
+
 EXTRACTOR_FILE = Path(__file__).parent / "roles" / "extractor.md"
+BRIEFER_FILE = Path(__file__).parent / "roles" / "briefer.md"
 
 
-class BackendType(Enum):
-    EXTRACTION = "extraction"
-    DIGESTION = "digestion"
-    REVISION = "revision"
+def _bullets(fields: list[FieldSpec]) -> str:
+    return "\n".join(
+        f"- {field.field}: {field.description}"
+        + (f"Allowed values: {','.join(field.values)}" if field.values else "")
+        for field in fields
+    )
 
 
-def build_prompt(path: Path, type: BackendType) -> str:
-    if type == BackendType.EXTRACTION:
-        with open(EXTRACTOR_FILE) as extractor_file:
-            base_prompt = extractor_file.read()
-        return base_prompt.replace("{PDF}", str(path))
-    else:
-        raise NotImplementedError("Only Extraction is implemented so far.")
+def build_extraction_prompt(path: Path) -> str:
+    return EXTRACTOR_FILE.read_text().replace("{PDF}", str(path))
+
+
+def build_briefing_prompt(markdown: str, config: BriefConfig) -> str:
+    return (
+        BRIEFER_FILE.read_text()
+        .replace("{MARKDOWN}", markdown)
+        .replace("{PROJECT_NAME}", config.project.name)
+        .replace("{PROJECT_DESCRIPTION}", config.project.description)
+        .replace("{FRONTMATTER_FIELDS}", _bullets(config.frontmatter))
+        .replace("{SECTION_FIELDS}", _bullets(config.sections))
+    )

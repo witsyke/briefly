@@ -1,0 +1,28 @@
+project:
+  name: My Project
+  description: |
+      We study active learning/optimal design for spatio-temporal problems
+      to find a way to best chose the optimal next time point/location/both
+      under resource constraints. One application area is epidemiology.
+
+
+frontmatter:
+  - field: tags
+    description: 3-5 short topical tags for this paper, comma-separated
+  - field: priority
+    values:
+      - "ignore"
+      - "low"
+      - "medium"
+      - "high"
+    description: |
+        priority to read and consider this work with respect to the
+        project description
+
+sections:
+  - field: summary
+    description: 4-5 sentence summary of the paper's core contribution
+  - field: takeaways
+    description: |
+        bullet list of most actional takeaways for someone working on a
+        project with the given project description

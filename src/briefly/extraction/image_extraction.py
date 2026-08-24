@@ -235,7 +235,6 @@ def _extract_images_sync(
 
     except Exception as exc:
         return ImageExtractionOutcome.failure(pdf_path, exc, retryable=False)
-    print("--------")
     return ImageExtractionOutcome.ok(pdf_path, saved)
 
 
