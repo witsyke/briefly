@@ -361,7 +361,7 @@ def main() -> int:
         "Do you want to run brief creation?",
         default=True,
     ):
-        briefing_dir = Path(args.briefing_dir)
+        briefing_dir = Path(args.briefing_config)
         brief_config = ensure_brief_config(briefing_dir, console)
         if brief_config is None:
             console.print("Skipping brief creation.")

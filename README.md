@@ -12,11 +12,22 @@ config-driven briefs, and a small browsable HTML site linking both — using
 ## Install
 
 ```
-uv tool install git+https://github.com/witsyke/briefly
+uv tool install git+https://github.com/witsyke/briefly@v0.1.0   # pinned (recommended)
+uv tool install git+https://github.com/witsyke/briefly          # tracks main
 ```
 
 This installs a `briefly` command on your `PATH`. No need to clone the
-repo — run it from any directory of your own.
+repo — run it from any directory of your own. The pinned form installs a
+tagged release; the untagged form always installs whatever `main` happens
+to be at that moment, and later `uv tool install --reinstall briefly` (or
+`uv tool upgrade briefly`) will silently pick up wherever `main` has moved
+to since.
+
+To uninstall:
+
+```
+uv tool uninstall briefly
+```
 
 ## Usage
 
@@ -25,6 +36,11 @@ mkdir my-project && cd my-project
 mkdir literature   # put PDFs here
 briefly
 ```
+
+`literature/` (or whatever `--literature-dir` points at) is where
+`briefly` looks for input: every `.pdf` file directly inside it is picked
+up as one paper to process. It isn't created for you — make it and drop
+your PDFs in before running.
 
 Re-running `briefly` in the same directory only processes PDFs that are
 new or previously failed — progress is tracked in a local sqlite file.
