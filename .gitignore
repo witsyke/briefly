@@ -14,5 +14,6 @@ extractions/
 pdfs/
 docs/
 web/
+briefs/
 briefly.sqlite3
 .DS_Store

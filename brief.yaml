@@ -1,14 +1,28 @@
 project:
-  name: My Project
+  name: Adaptive sensing & active learning literature
   description: |
-      We study active learning/optimal design for spatio-temporal problems
-      to find a way to best chose the optimal next time point/location/both
-      under resource constraints. One application area is epidemiology.
-
+      We study methods that choose observations sequentially under resource
+      constraints: adaptive testing, active sensing, and sequential
+      experimental design. For each paper, care about what it chooses at
+      each decision (the design variable), what it optimizes to make that
+      choice (the objective), and how it handles uncertainty. One
+      application area is epidemiology, but methods from other domains are
+      relevant too.
 
 frontmatter:
   - field: tags
     description: 3-5 short topical tags for this paper, comma-separated
+  - field: setting
+    description: |
+        the concrete system or process the paper operates on (e.g. a
+        network-coupled epidemic model, a universal differential equation,
+        a continuous-time SDE, a static mobility network), stated
+        concretely rather than as a vague label like "dynamical system"
+  - field: objective
+    description: |
+        the scalar quantity being optimized to drive the design decision
+        (e.g. expected information gain, a Fisher-information criterion,
+        detection probability, predictive accuracy)
   - field: priority
     values:
       - "ignore"
@@ -17,12 +31,30 @@ frontmatter:
       - "high"
     description: |
         priority to read and consider this work with respect to the
-        project description
+        project description; must be justified in the Relevance section
+        below, not asserted on its own
 
 sections:
   - field: summary
-    description: 4-5 sentence summary of the paper's core contribution
-  - field: takeaways
     description: |
-        bullet list of most actional takeaways for someone working on a
-        project with the given project description
+        state the paper's decision problem in this project's terms: what
+        is observed or tested, under what constraint or budget, and the
+        paper's main result
+  - field: methods
+    description: |
+        how the design variable is chosen: the decision procedure and the
+        criterion driving it, plus any surrogate or inference model it
+        depends on; note the assumptions the method relies on (known
+        dynamics, linearity, budget structure) that bound how far it
+        generalizes
+  - field: findings
+    description: |
+        the concrete quantitative or qualitative results that support the
+        paper's claims, distinguished from the paper's own interpretation
+        of them
+  - field: relevance
+    description: |
+        why this paper is (or isn't) a good fit for this project's
+        research question: what could be reused as-is, what would need
+        adaptation, and what wouldn't transfer; this is the argument for
+        the priority value above, not a free-form reaction

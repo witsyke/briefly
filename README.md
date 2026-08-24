@@ -77,3 +77,7 @@ the generated site's index table); `sections` fields each become a `##`
 heading with the model's answer underneath. A field with `values` is
 constrained to that exact list — anything else is rejected, not silently
 accepted as free text.
+
+This repo's own [`brief.yaml`](brief.yaml) is committed as a real,
+fuller example — an orientation to copy and adapt for your own project,
+not a schema to match exactly.
