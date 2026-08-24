@@ -85,7 +85,9 @@ async def write_brief(outcome: BriefOutcome, config: BriefConfig, output_dir: Pa
         f"## {spec.field.replace('_', ' ').title()}\n\n{outcome.fields[spec.field]}"
         for spec in config.sections
     )
-    out_path.write_text(f"---\n{yaml.safe_dump(frontmatter)}---\n\n{body}\n")
+    out_path.write_text(
+        f"""---\n{yaml.safe_dump(frontmatter, width=float("inf"))}---\n\n{body}\n"""
+    )
     return out_path
 
 
