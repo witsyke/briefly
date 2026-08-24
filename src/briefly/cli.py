@@ -322,13 +322,55 @@ def run_site_stage(
 
 def main() -> int:
 
-    parser = argparse.ArgumentParser(description="Process PDF papers into a summary")
-    parser.add_argument("--literature-dir", type=str, default="literature")
-    parser.add_argument("--extraction-dir", type=str, default="extractions")
-    parser.add_argument("--briefing-dir", type=str, default="briefs")
-    parser.add_argument("--site-dir", type=str, default="web")
-    parser.add_argument("--briefing-config", type=str, default="brief.yaml")
-    parser.add_argument("--database", type=str, default="briefly.sqlite3")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Turn a directory of PDF papers into extracted Markdown (with "
+            "figures), config-driven briefs, and a small browsable HTML site "
+            "linking both, using `claude` as the extraction/briefing backend."
+        )
+    )
+    parser.add_argument(
+        "--literature-dir",
+        type=str,
+        default="literature",
+        help="directory of input PDFs (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--extraction-dir",
+        type=str,
+        default="extractions",
+        help="directory for extracted Markdown + images (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--briefing-dir",
+        type=str,
+        default="briefs",
+        help="directory for generated briefs (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--site-dir",
+        type=str,
+        default="web",
+        help="directory for the generated HTML site (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--briefing-config",
+        type=str,
+        default="brief.yaml",
+        help=(
+            "YAML config driving brief creation; scaffolded interactively on "
+            "first use if missing (default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--database",
+        type=str,
+        default="briefly.sqlite3",
+        help=(
+            "sqlite file tracking progress; re-running only processes "
+            "new/failed PDFs (default: %(default)s)"
+        ),
+    )
     args = parser.parse_args()
 
     console = Console()
