@@ -13,11 +13,11 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 from sqlalchemy import Engine
 
 from briefly import report, store
-from briefly.briefing import BriefConfig, BriefOutcome
+from briefly.briefing import BriefConfig, BriefOutcome, FieldSpec, ProjectInfo
 from briefly.claude import ClaudeBackend
 from briefly.extraction import ExtractionOutcome, extract_images
 from briefly.extraction.image_extraction import ImageExtractionOutcome
@@ -31,6 +31,60 @@ from briefly.writing import (
     write_brief,
     write_markdown,
 )
+
+
+def ensure_brief_config(path: Path, console: Console) -> BriefConfig | None:
+    if path.exists():
+        with open(path) as config_file:
+            return BriefConfig.model_validate(yaml.safe_load(config_file))
+
+    console.print(f"\n No biefing config found at [bold]{path}[/bold].")
+    if not Confirm.ask("Create a basic configuration now?", default=True):
+        return None
+
+    name = Prompt.ask("Project name")
+    description = Prompt.ask("Project description")
+    config = BriefConfig(
+        project=ProjectInfo(name=name, description=description),
+        frontmatter=[
+            FieldSpec(
+                field="tags",
+                description="3-5 short topical tags for this paper, comma-separated",
+            ),
+            FieldSpec(
+                field="priority",
+                description="""
+                priority to read and consider this work with respect
+                to the project description
+                """,
+                values=["ignore", "low", "medium", "high"],
+            ),
+        ],
+        sections=[
+            FieldSpec(
+                field="summary",
+                description="4-5 sentence summary of the paper's core contributions",
+            ),
+            FieldSpec(
+                field="takeaways",
+                description="""
+                bullet list of most actionable takeaways for someone working
+                on a project with the given project description
+                """,
+            ),
+        ],
+    )
+
+    path.write_text(
+        yaml.safe_dump(config.model_dump(exclude_none=True), sort_keys=False)
+    )
+    console.print(
+        f"""[green]Created {path}[/green].
+        Edit it anytime to change what future briefs cover.\n
+        """
+    )
+
+    return config
 
 
 def run_extraction_stage(
@@ -304,29 +358,38 @@ def main() -> int:
     reports = [text_extraction_report, image_extraction_report]
 
     if Confirm.ask(
-        "Do you want to run brief creation (requires a valid briefing config?",
+        "Do you want to run brief creation?",
         default=True,
     ):
-        briefing_report = report.StageReport(name="Brief Creation")
         briefing_dir = Path(args.briefing_dir)
-        briefing_dir.mkdir(exist_ok=True)
+        brief_config = ensure_brief_config(briefing_dir, console)
+        if brief_config is None:
+            console.print("Skipping brief creation.")
+        else:
+            invalidated = store.sync_brief_config(engine, brief_config)
+            if invalidated:
+                console.print(f"""
+                    [yellow]briefing config has changed[/yellow]
+                    -> {invalidated} existing briefs are not longer valid
+                    and will be regenerated.
+                    """)
 
-        with open(args.briefing_config) as config:
-            brief_config = BriefConfig.model_validate(yaml.safe_load(config))
+            briefing_report = report.StageReport(name="Brief Creation")
+            briefing_dir.mkdir(exist_ok=True)
 
-        run_briefing_stage(
-            engine, store.pending_briefs(engine), briefing_report, brief_config
-        )
-        run_brief_writing_stage(
-            engine,
-            store.successful_briefs(engine, brief_config),
-            brief_config,
-            briefing_dir,
-        )
-        reports.append(briefing_report)
+            run_briefing_stage(
+                engine, store.pending_briefs(engine), briefing_report, brief_config
+            )
+            run_brief_writing_stage(
+                engine,
+                store.successful_briefs(engine, brief_config),
+                brief_config,
+                briefing_dir,
+            )
+            reports.append(briefing_report)
 
-        site_dir = Path(args.site_dir)
-        run_site_stage(engine, extraction_dir, briefing_dir, site_dir, brief_config)
+            site_dir = Path(args.site_dir)
+            run_site_stage(engine, extraction_dir, briefing_dir, site_dir, brief_config)
 
     report.print_summary(console, reports)
 

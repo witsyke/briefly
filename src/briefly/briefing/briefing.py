@@ -1,3 +1,5 @@
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -70,3 +72,8 @@ class BriefOutcome:
         cls, path: Path, error: BaseException, retryable: bool
     ) -> "BriefOutcome":
         return cls(path=path, fields=None, error=str(error), retryable=retryable)
+
+
+def config_hash(config: BriefConfig) -> str:
+    canonical = json.dumps(config.model_dump(), sort_keys=True)
+    return hashlib.sha256(canonical.encode()).hexdigest()

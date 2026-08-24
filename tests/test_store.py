@@ -82,3 +82,44 @@ def test_successful_briefs_round_trips_fields(tmp_path):
     briefs = store.successful_briefs(engine, _config())
 
     assert briefs[0].fields == {"summary": "done"}
+
+
+def test_sync_brief_config_invalidates_briefs_when_config_changes(tmp_path):
+    engine = store.connect(tmp_path / "test.sqlite3")
+    config_a = BriefConfig(
+        project=ProjectInfo(name="P", description="D"),
+        frontmatter=[FieldSpec(field="tags", description="tags")],
+        sections=[],
+    )
+    config_b = BriefConfig(
+        project=ProjectInfo(name="P", description="D"),
+        frontmatter=[
+            FieldSpec(field="tags", description="tags"),
+            FieldSpec(field="priority", description="prio"),
+        ],
+        sections=[],
+    )
+
+    store.sync_brief_config(engine, config_a)
+    store.save_brief(engine, BriefOutcome.ok(Path("a.pdf"), {"tags": "x"}))
+
+    invalidated = store.sync_brief_config(engine, config_b)
+
+    assert invalidated == 1
+    assert store.pending_briefs(engine) == []
+
+
+def test_sync_brief_config_is_a_no_op_when_config_is_unchanged(tmp_path):
+    engine = store.connect(tmp_path / "test.sqlite3")
+    config = BriefConfig(
+        project=ProjectInfo(name="P", description="D"),
+        frontmatter=[FieldSpec(field="tags", description="tags")],
+        sections=[],
+    )
+
+    store.sync_brief_config(engine, config)
+    store.save_brief(engine, BriefOutcome.ok(Path("a.pdf"), {"tags": "x"}))
+
+    invalidated = store.sync_brief_config(engine, config)
+
+    assert invalidated == 0

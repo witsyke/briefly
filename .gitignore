@@ -13,5 +13,6 @@ wheels/
 extractions/
 pdfs/
 docs/
+web/
 briefly.sqlite3
 .DS_Store

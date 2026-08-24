@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlalchemy import Engine
 from sqlmodel import Field, Session, SQLModel, create_engine, delete, select
 
-from briefly.briefing import BriefConfig, BriefOutcome
+from briefly.briefing import BriefConfig, BriefOutcome, config_hash
 from briefly.extraction import (
     ExtractionOutcome,
     ExtractionPayload,
@@ -212,3 +212,23 @@ def brief_index_rows(engine: Engine) -> list[BriefIndexRow]:
         )
         for extraction, brief in rows
     ]
+
+
+class BriefConfigRow(SQLModel, table=True):
+    ___tablename__ = "brief_config"
+    id: int = Field(default=1, primary_key=True)
+    config_hash: str
+
+
+def sync_brief_config(engine: Engine, config: BriefConfig) -> int:
+    new_hash = config_hash(config)
+    with Session(engine) as session:
+        row = session.get(BriefConfigRow, 1)
+        invalidated = 0
+        if row is not None and row.config_hash != new_hash:
+            invalidated = len(session.exec(select(BriefRow)).all())
+            session.exec(delete(BriefRow))
+        session.merge(BriefConfigRow(id=1, config_hash=new_hash))
+        session.commit()
+
+    return invalidated

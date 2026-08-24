@@ -4,6 +4,7 @@ from .briefing import (
     FieldSpec,
     ProjectInfo,
     build_brief_model,
+    config_hash,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "FieldSpec",
     "ProjectInfo",
     "build_brief_model",
+    "config_hash",
 ]
