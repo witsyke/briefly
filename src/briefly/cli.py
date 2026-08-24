@@ -361,8 +361,7 @@ def main() -> int:
         "Do you want to run brief creation?",
         default=True,
     ):
-        briefing_dir = Path(args.briefing_config)
-        brief_config = ensure_brief_config(briefing_dir, console)
+        brief_config = ensure_brief_config(Path(args.briefing_config), console)
         if brief_config is None:
             console.print("Skipping brief creation.")
         else:
@@ -375,6 +374,7 @@ def main() -> int:
                     """)
 
             briefing_report = report.StageReport(name="Brief Creation")
+            briefing_dir = Path(args.briefing_dir)
             briefing_dir.mkdir(exist_ok=True)
 
             run_briefing_stage(
