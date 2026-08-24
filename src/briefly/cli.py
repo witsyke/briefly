@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import re
 from pathlib import Path
 
 import yaml
@@ -23,8 +22,15 @@ from briefly.claude import ClaudeBackend
 from briefly.extraction import ExtractionOutcome, extract_images
 from briefly.extraction.image_extraction import ImageExtractionOutcome
 from briefly.queue import WorkerQueue
-
-PLACEHOLDER_RE = re.compile(r"\{\{IMAGE:(\d+)\}\}")
+from briefly.writing import (
+    build_index_html,
+    render_brief_page,
+    render_paper_page,
+    sync_css,
+    sync_images,
+    write_brief,
+    write_markdown,
+)
 
 
 def run_extraction_stage(
@@ -219,39 +225,6 @@ def run_brief_writing_stage(
         asyncio.run(queue.run(successful))
 
 
-async def write_markdown(
-    outcome: ExtractionOutcome, images: dict[int, Path], output_dir: Path
-) -> Path:
-    assert outcome.payload is not None
-    out_path = output_dir / f"{outcome.path.stem}.md"
-
-    def substitute(match: re.Match[str]) -> str:
-        image_path = images.get(int(match.group(1)))
-        if image_path is None:
-            return match.group(0)
-        else:
-            relative = image_path.relative_to(output_dir)
-            return f"![]({relative})"
-
-    markdown = PLACEHOLDER_RE.sub(substitute, outcome.payload.markdown)
-    out_path.write_text(markdown)
-    return out_path
-
-
-async def write_brief(outcome: BriefOutcome, config: BriefConfig, output_dir: Path):
-    assert outcome.fields is not None
-    out_path = output_dir / f"{outcome.path.stem}.md"
-    frontmatter = {
-        spec.field: outcome.fields[spec.field] for spec in config.frontmatter
-    }
-    body = "\n\n".join(
-        f"## {spec.field.replace('_', ' ').title()}\n\n{outcome.fields[spec.field]}"
-        for spec in config.sections
-    )
-    out_path.write_text(f"---\n{yaml.safe_dump(frontmatter)}---\n\n{body}\n")
-    return out_path
-
-
 def review_failures(
     engine: Engine, console: Console, report: report.StageReport
 ) -> None:
@@ -271,12 +244,34 @@ def review_failures(
             store.set_retryable(engine, path, retryable, error=error)
 
 
+def run_site_stage(
+    engine: Engine,
+    extraction_dir: Path,
+    briefing_dir: Path,
+    site_dir: Path,
+    brief_config: BriefConfig,
+) -> None:
+    site_dir.mkdir(exist_ok=True)
+    sync_images(extraction_dir, site_dir)
+    sync_css(site_dir)
+
+    rows = store.brief_index_rows(engine)
+    for row in rows:
+        render_paper_page(extraction_dir, site_dir, row.path, row.title)
+        render_brief_page(briefing_dir, site_dir, row.path, row.title)
+
+    (site_dir / "index.html").write_text(
+        build_index_html(rows, brief_config.frontmatter)
+    )
+
+
 def main() -> int:
 
     parser = argparse.ArgumentParser(description="Process PDF papers into a summary")
     parser.add_argument("--literature-dir", type=str, default="literature")
     parser.add_argument("--extraction-dir", type=str, default="extractions")
     parser.add_argument("--briefing-dir", type=str, default="briefs")
+    parser.add_argument("--site-dir", type=str, default="web")
     parser.add_argument("--briefing-config", type=str, default="brief.yaml")
     parser.add_argument("--database", type=str, default="briefly.sqlite3")
     args = parser.parse_args()
@@ -329,6 +324,9 @@ def main() -> int:
             briefing_dir,
         )
         reports.append(briefing_report)
+
+        site_dir = Path(args.site_dir)
+        run_site_stage(engine, extraction_dir, briefing_dir, site_dir, brief_config)
 
     report.print_summary(console, reports)
 

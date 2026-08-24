@@ -1,0 +1,232 @@
+:root {
+  --bg: #0d1117;
+  --bg-raised: #151b23;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo,
+    Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 2.5rem clamp(1rem, 5vw, 4rem);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: var(--text-dim);
+}
+
+.back:hover {
+  color: var(--accent);
+}
+
+/* index table */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-raised);
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  border-left: 2px solid transparent;
+}
+
+tbody tr:hover {
+  background: var(--bg-raised);
+  border-left-color: var(--accent);
+}
+
+td {
+  padding: 0.6rem 0.8rem;
+  vertical-align: top;
+}
+
+td.title {
+  color: var(--text);
+  font-weight: 600;
+}
+
+td.authors {
+  color: var(--text-dim);
+}
+
+/* [paper] / [brief] links, styled like CLI flags */
+
+a.link {
+  margin-left: 0.6rem;
+  font-weight: 400;
+  font-size: 0.85em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+}
+
+a.link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+/* values-constrained frontmatter fields (e.g. priority) render as a pill;
+   build_index_html assigns pill-0..pill-4 by the value's position in
+   FieldSpec.values, so the ramp reads low-key -> attention-grabbing */
+
+.pill {
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.pill-0 {
+  color: var(--text-dim);
+}
+
+.pill-1 {
+  color: #58a6ff;
+  border-color: #1f6feb;
+}
+
+.pill-2 {
+  color: #d29922;
+  border-color: #9e6a03;
+}
+
+.pill-3 {
+  color: #f0883e;
+  border-color: #bd561d;
+}
+
+.pill-4 {
+  color: #f85149;
+  border-color: #da3633;
+}
+
+/* frontmatter block on rendered paper / brief pages */
+
+.frontmatter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.meta-key {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.meta-value {
+  color: var(--text);
+}
+
+/* rendered paper / brief pages */
+
+article {
+  max-width: 100ch;
+  margin: 0 auto;
+}
+
+article h1,
+article h2,
+article h3 {
+  line-height: 1.3;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3rem;
+}
+
+article p,
+article li {
+  color: var(--text);
+}
+
+article img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+article code {
+  font-family: var(--mono);
+  background: var(--bg-raised);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+article pre {
+  background: var(--bg-raised);
+  padding: 0.8rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+article pre code {
+  background: none;
+  padding: 0;
+}
+
+article table {
+  margin: 1rem 0;
+}
+
+article th,
+article td {
+  border: 1px solid var(--border);
+}
+
+article blockquote {
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--border);
+  color: var(--text-dim);
+}

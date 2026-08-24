@@ -12,6 +12,9 @@ dependencies = [
     "rich>=15.0.0",
     "sqlalchemy>=2.0.51",
     "sqlmodel>=0.0.39",
+    "markdown>=3.7",
+    "pymdown-extensions>=10.11",
+    "pypdfium2>=5.13.0",
 ]
 
 [build-system]

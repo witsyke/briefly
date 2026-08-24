@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 
 from briefly.briefing import BriefConfig, BriefOutcome, FieldSpec, ProjectInfo
-from briefly.cli import write_brief
+from briefly.writing import write_brief
 
 
 def test_write_brief_orders_frontmatter_and_sections_by_config_order(tmp_path):

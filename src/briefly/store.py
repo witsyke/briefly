@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy import Engine
@@ -183,4 +184,31 @@ def successful_briefs(engine: Engine, brief_config: BriefConfig) -> list[BriefOu
     return [
         BriefOutcome.ok(Path(row.path), json.loads(row.fields_json or "{}"))
         for row in rows
+    ]
+
+
+@dataclass(frozen=True)
+class BriefIndexRow:
+    path: Path
+    title: str
+    authors: str
+    fields: dict[str, str]
+
+
+def brief_index_rows(engine: Engine) -> list[BriefIndexRow]:
+    with Session(engine) as session:
+        rows = session.exec(
+            select(ExtractionRow, BriefRow)
+            .join(BriefRow, BriefRow.path == ExtractionRow.path)
+            .where(BriefRow.fields_json.is_not(None))  # pyright: ignore
+        ).all()
+
+    return [
+        BriefIndexRow(
+            path=Path(extraction.path),
+            title=extraction.title or "",
+            authors=extraction.authors or "",
+            fields=json.loads(brief.fields_json or "{}"),
+        )
+        for extraction, brief in rows
     ]
