@@ -21,6 +21,7 @@ STYLE_CSS_FILE = Path(__file__).parent / "templates" / "style.css"
 
 def render_page(markdown_text: str, title: str) -> str:
     _MD.reset()
+    markdown_text = markdown_text.replace("](images/", "](../images/")
     body = _MD.convert(markdown_text)
     frontmatter = _render_frontmatter(_MD.Meta)
     return (
@@ -46,14 +47,14 @@ def render_paper_page(
     extraction_dir: Path, site_dir: Path, path: Path, title: str
 ) -> None:
     text = (extraction_dir / f"{path.stem}.md").read_text()
-    (site_dir / f"{path.stem}.html").write_text(render_page(text, title))
+    (site_dir / "papers" / f"{path.stem}.html").write_text(render_page(text, title))
 
 
 def render_brief_page(
     briefing_dir: Path, site_dir: Path, path: Path, title: str
 ) -> None:
     text = (briefing_dir / f"{path.stem}.md").read_text()
-    (site_dir / f"{path.stem}-brief.html").write_text(render_page(text, title))
+    (site_dir / "briefs" / f"{path.stem}.html").write_text(render_page(text, title))
 
 
 async def write_markdown(
@@ -109,8 +110,8 @@ def _index_row(row: BriefIndexRow, frontmatter: list[FieldSpec]) -> str:
     <tr>
         <td class="title">
         {row.title}
-        <a class="link" href="{row.path.stem}.html">[paper]</a>
-        <a class="link" href="{row.path.stem}-brief.html">[brief]</a>
+        <a class="link" href="papers/{row.path.stem}.html">[paper]</a>
+        <a class="link" href="briefs/{row.path.stem}.html">[brief]</a>
         </td>
         <td class="authors">{row.authors}</td>
         {cells}

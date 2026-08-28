@@ -306,7 +306,10 @@ def run_site_stage(
     site_dir: Path,
     brief_config: BriefConfig,
 ) -> None:
+    site_dir.rmdir()  # for now because of the structure change
     site_dir.mkdir(exist_ok=True)
+    (site_dir / "papers").mkdir(exist_ok=True)
+    (site_dir / "briefs").mkdir(exist_ok=True)
     sync_images(extraction_dir, site_dir)
     sync_css(site_dir)
 

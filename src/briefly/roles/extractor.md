@@ -23,6 +23,13 @@ transcription. Read {PDF} as the PDF. Do not read or trust any other file.
 - Express inline mathematics as `$...$` and display mathematics as `$$...$$`
   using LaTeX. Preserve every symbol, subscript, and superscript exactly as
   it appears; do not simplify or reformat an equation's meaning.
+- When a single logical equation continues across multiple lines in the
+  source (e.g. a derivation whose next line starts with `=` or continues an
+  alignment), keep it inside one `$$...$$` block rather than emitting
+  separate `$$...$$` blocks back-to-back — concatenate the lines, or use
+  `\begin{aligned}...\end{aligned}` if the alignment itself matters. Never
+  place two `$$...$$` blocks on adjacent lines with no blank line between
+  them.
 - If a passage is genuinely illegible (e.g. a scanning artifact), mark it
   explicitly (for example `[illegible]`) rather than guessing at its
   content.
