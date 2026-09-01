@@ -2,8 +2,10 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import Engine
-from sqlmodel import Field, Session, SQLModel, create_engine, delete, select
+from sqlmodel import Field, Session, SQLModel, create_engine, delete, inspect, select
 
 from briefly.briefing import BriefConfig, BriefOutcome, config_hash
 from briefly.extraction import (
@@ -12,6 +14,16 @@ from briefly.extraction import (
     ImageExtractionOutcome,
 )
 from briefly.extraction.extraction import ImageReference
+
+MIGRATIONS_DIR = Path(__file__).parent / "migrations"
+BASELINE_REVISION = "0001"
+
+
+def _alembic_config(db_path: Path) -> Config:
+    config = Config()
+    config.set_main_option("script_location", str(MIGRATIONS_DIR))
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    return config
 
 
 class ExtractionRow(SQLModel, table=True):
@@ -28,7 +40,14 @@ class ExtractionRow(SQLModel, table=True):
 
 def connect(db_path: Path):
     engine = create_engine(f"sqlite:///{db_path}")
-    SQLModel.metadata.create_all(engine)
+    config = _alembic_config(db_path)
+    inspector = inspect(engine)
+    if inspector.has_table("extractions") and not inspector.has_table(
+        "alembic_version"
+    ):
+        command.stamp(config, BASELINE_REVISION)
+
+    command.upgrade(config, "head")
     return engine
 
 
@@ -215,7 +234,7 @@ def brief_index_rows(engine: Engine) -> list[BriefIndexRow]:
 
 
 class BriefConfigRow(SQLModel, table=True):
-    ___tablename__ = "brief_config"
+    __tablename__ = "brief_config"
     id: int = Field(default=1, primary_key=True)
     config_hash: str
 

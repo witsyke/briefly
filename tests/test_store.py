@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from sqlmodel import SQLModel, create_engine
+
 from briefly import store
 from briefly.briefing import BriefConfig, BriefOutcome, FieldSpec, ProjectInfo
 from briefly.extraction import ExtractionOutcome, ExtractionPayload
@@ -123,3 +125,24 @@ def test_sync_brief_config_is_a_no_op_when_config_is_unchanged(tmp_path):
     invalidated = store.sync_brief_config(engine, config)
 
     assert invalidated == 0
+
+
+def test_connect_stamps_existing_unversioned_db(tmp_path):
+    db_path = tmp_path / "legacy.sqlite3"
+
+    legacy_engine = create_engine(f"sqlite:///{db_path}")
+    SQLModel.metadata.create_all(legacy_engine)
+    store.save_extraction(
+        legacy_engine, ExtractionOutcome.ok(Path("a.pdf"), _extraction_payload())
+    )
+    legacy_engine.dispose()
+
+    engine = store.connect(db_path)
+
+    assert store.successful_outcomes(engine) != []
+
+    with engine.connect() as conn:
+        version = conn.exec_driver_sql(
+            "SELECT version_num FROM alembic_version"
+        ).scalar()
+        assert version == store.BASELINE_REVISION

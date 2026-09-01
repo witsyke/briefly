@@ -15,6 +15,7 @@ dependencies = [
     "markdown>=3.7",
     "pymdown-extensions>=10.11",
     "pypdfium2>=5.13.0",
+    "alembic>=1.19.1",
 ]
 
 [build-system]
@@ -45,5 +46,5 @@ select = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--doctest-modules"
+addopts = "--doctest-modules --ignore=src/briefly/migrations"
 testpaths = ["src", "tests"]
