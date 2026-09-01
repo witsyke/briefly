@@ -23,6 +23,7 @@ from briefly.claude import ClaudeBackend
 from briefly.extraction import ExtractionOutcome, extract_images
 from briefly.extraction.image_extraction import ImageExtractionOutcome
 from briefly.queue import WorkerQueue
+from briefly.utils import delete_folder
 from briefly.writing import (
     build_index_html,
     render_brief_page,
@@ -306,7 +307,7 @@ def run_site_stage(
     site_dir: Path,
     brief_config: BriefConfig,
 ) -> None:
-    site_dir.rmdir()  # for now because of the structure change
+    delete_folder(site_dir)  # for now because of the structure change
     site_dir.mkdir(exist_ok=True)
     (site_dir / "papers").mkdir(exist_ok=True)
     (site_dir / "briefs").mkdir(exist_ok=True)

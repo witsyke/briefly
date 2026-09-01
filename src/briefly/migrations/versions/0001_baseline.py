@@ -1,4 +1,4 @@
-"""baselineL extractions, images, briefs, brief_config
+"""baseline extractions, images, briefs, brief_config
 
 Revision ID: 0001
 Revises:
